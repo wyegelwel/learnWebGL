@@ -1,0 +1,8 @@
+Textures locally:
+
+If you get an error about Security Agent... it is likely that you are trying to read files locally which apparently chrome isn't cool with.
+
+To get around this, you need to add a flag for reading files locally.
+
+In windows:
+"C:\PathTo\Chrome.exe" –allow-file-access-from-files
