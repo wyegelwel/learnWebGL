@@ -175,8 +175,12 @@
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         mat4.identity(mvMatrix);
-
+        mat4.multiply(mvMatrix,trans);
+        mat4.rotateY(mvMatrix,rot)
+        
         mat4.multiply(mvMatrix, cube.trans_mat);
+
+        
         gl.bindBuffer(gl.ARRAY_BUFFER, cube.posBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cube.posBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -213,15 +217,34 @@
     }
 
     function handleLoadedTexture(texture){
-        gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.bindTexture(gl.TEXTURE_2D, null);
 
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
+        nearestFilter(texture);
+        
+    }
+
+    function linearFilter(texture){
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    function nearestFilter(texture){
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    function mipmapFilter(texture){
+        gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
         gl.generateMipmap(gl.TEXTURE_2D);
@@ -248,6 +271,7 @@
         requestAnimFrame(tick);
         render();
         animate();
+        handleKeysHeld();
     }
 
     function webGLStart() {
@@ -261,12 +285,62 @@
         gl.enable(gl.DEPTH_TEST);
 
         var camera = {fov: 45,
-                      aspectRatio: gl.viewportWidth / gl.viewportHeight,
+                      aspectRatio: 1,
                       near: .01,
                       far: 100};
         updateCamera(camera);
 
+        document.onkeydown = handleKeyDown;
+        document.onkeyup = handleKeyUp;
+
         tick();
+    }
+
+    var trans = mat4.identity(mat4.create());
+    var rot = 0;
+    function handleKeysHeld(){
+        if (keysHeld["W"]){
+            trans = mat4.translate(trans, [0, 0, .06]);
+        } 
+        if (keysHeld["S"]){
+            trans = mat4.translate(trans, [0, 0, -.06]);
+        }
+        if (keysHeld["A"]){
+            trans = mat4.translate(trans, [.06, 0, 0]);
+        }
+        if (keysHeld["D"]){
+            trans = mat4.translate(trans, [-.06, 0, 0]);
+        }
+        if (keysHeld["X"]){
+            trans = mat4.translate(trans, [0, -.06, 0]);
+        }
+        if (keysHeld["Z"]){
+            trans = mat4.translate(trans, [0, .06, 0]);
+        }
+        if (keysHeld["E"]){
+           rot += degToRad(.6);
+        }
+        if (keysHeld["Q"]){
+            rot += degToRad(-.6);
+        }
+
+    }
+
+
+    var keysHeld = {};
+    function handleKeyDown(event){
+        if (String.fromCharCode(event.keyCode) == "M"){
+            mipmapFilter(checkerTexture);
+        } else if (String.fromCharCode(event.keyCode) == "L"){
+            linearFilter(checkerTexture);
+        } else if (String.fromCharCode(event.keyCode) == "N"){
+            nearestFilter(checkerTexture);
+        }
+        keysHeld[String.fromCharCode(event.keyCode)] = true;
+    }
+
+    function handleKeyUp(event){
+        keysHeld[String.fromCharCode(event.keyCode)] = false;
     }
 
     //Matrix utils
@@ -289,7 +363,36 @@
 </head>
 <body onload="webGLStart();">
 
-    <canvas id="canvas" style="border: none;" width="500" height="500"></canvas>
-
+    <canvas id="canvas" style="border: none; width: 100%; height: 60%; margin: 0px" width="600" height="500"></canvas>
+    <div style="float: left; margin: 20px;">
+        <h3> Controls </h3>
+        <p>
+            w -- move forward
+            <br>
+            s -- move back
+            <br>
+            a -- move left
+            <br>
+            d -- move right
+            <br>
+            q -- rotate counterclockwise
+            <br>
+            e -- rotate clockwise
+            <br>
+            x -- move up
+            <br>
+            z -- move down
+        </p>
+    </div>
+    <div style="float: left; margin: 20px;">
+        <h3> Anti aliasing techniques </h3>
+        <p>
+            n -- nearest
+            <br>
+            l -- linear
+            <br>
+            m -- mipmap
+        </p>
+    </div>
 </body>
 </html>
